@@ -1,0 +1,584 @@
+{% extends 'main/index.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .modal {
+        display: flex; /* Используем Flexbox для центрирования */
+        justify-content: center; /* Центрируем по горизонтали */
+        align-items: center; /* Центрируем по вертикали */
+        position: fixed; /* Фиксируем позицию */
+        top: 0; /* Устанавливаем верхнюю границу */
+        left: 0; /* Устанавливаем левую границу */
+        width: 100%; /* Ширина на весь экран */
+        height: 100%; /* Высота на весь экран */
+        background-color: rgba(0, 0, 0, 0.5); /* Полупрозрачный фон */
+        z-index: 1000; /* Устанавливаем высокий z-index, чтобы модальное окно было поверх других элементов */
+    }
+
+    .modal-content {
+        background-color: white; /* Цвет фона модального окна */
+        padding: 20px; /* Отступы внутри модального окна */
+        border-radius: 5px; /* Закругленные углы */
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Тень для модального окна */
+        max-width: 500px; /* Максимальная ширина модального окна */
+        width: 100%; /* Ширина на 100% от родителя */
+    }
+</style>
+<div class="basic-div content-div"><strong>Справочник товаров</strong></div>
+<div class="basic-div content-div" id="content-div">
+    <div class="operation-div">
+        <span class="span-button" id="create-button">Создать</span>
+        <span class="span-button" id="import-button">Импортировать</span> <!-- Кнопка для импорта -->
+        <input type="text" name="search-field" id="search-field" value="">
+        <span class="span-button" id="search-button">Найти</span>
+        <span class="span-button" id="clear-search-field-button">Очистить</span>
+    </div>
+    <table id="content-table" class="content-table">
+        <tr>
+            <th column-key="category" display-name="Категория товара">Категория товара</th>
+            <th column-key="id" display-name="Номер">Номер</th>
+            <th column-key="title" display-name="Наименование">Наименование</th>
+            <th column-key="modificationCount" display-name="Модификация">Кол-во модификаций</th>
+            <th column-key="price" display-name="Цена">Цена</th>
+            <th column-key="dt_created" display-name="Дата создания">Дата создания</th>
+            <th column-key="dt_updated" display-name="Дата изменения">Дата изменения</th>
+            <th column-key="to_remove" display-name="Удл.">Удл.</th>
+        </tr>
+    </table>
+    <div class="navigation-div">
+        <span class="span-button" id="prev-page-button">Предыдущая страница</span>
+        <span class="span-button" id="next-page-button">Следующая страница</span>
+    </div>
+</div>
+
+<!-- Модальное окно для импорта товаров -->
+<div class="modal" id="import-modal" style="display: none">
+    <div>
+        <div class="modal-control-buttons">
+            <span class="span-button" id="import-modal-close-button">X</span>
+        </div>
+        <div>
+            <h3>Импорт товаров из файла</h3>
+            <input type="file" name="file" id="file" accept=".xlsx">
+            <br><br>
+            <span class="span-button" id="import-confirm-button">Импортировать</span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block modals %}
+<div class="modal" id="product-creator" style="display: none">
+    <div class="modal-content">
+        <div class="modal-control-buttons">
+            <span class="span-button" id="product-creator-close-button">X</span>
+        </div>
+        <div>
+            Номер: <span id="new-product-number"></span><br><br>
+            <fieldset>
+                Категория:<br>
+                <select name="new-product-category" id="new-product-category" required>
+                    <!-- Опции будут загружены динамически -->
+                </select><br><br>
+                Цена: <br><input type="text" name="new-product-price" id="new-product-price" value="0" required><br><br>
+                Наименование:<br><input type="text" name="new-product-title" id="new-product-title" value=""
+                                        required><br><br>
+                <div id="new-product-modifications-container">
+                    <!-- Здесь будут модификации -->
+                </div>
+                <button type="button" id="add-new-product-modification-button">Добавить модификацию</button><br><br>
+                Пометить на удаление: <input type="checkbox" name="new-product-to-remove" id="new-product-to-remove">
+            </fieldset>
+        </div>
+        <br>
+        <div class="modal-control-buttons">
+            <span class="span-button" id="product-creator-cancel-button">Отмена</span>
+            <span class="span-button" id="product-creator-save-button">Создать</span>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="product-editor" style="display: none">
+    <div class="modal-content">
+        <div class="modal-control-buttons">
+            <span class="span-button" id="product-editor-close-button">X</span>
+        </div>
+        <div>
+            Номер: <span id="product-number"></span><br><br>
+            Дата создания: <span id="product-dt-created"></span><br><br>
+            Дата изменения: <span id="product-dt-updated"></span><br><br>
+            <fieldset>
+                Категория:<br>
+                <select name="product-category" id="product-category" required>
+                    <!-- Опции будут загружены динамически -->
+                </select><br><br>
+                Цена: <br><input type="text" name="product-price" id="product-price" value="0" required><br><br>
+                Наименование:<br><input type="text" name="product-title" id="product-title" value="" required><br><br>
+                <div id="product-modifications-container">
+                    <!-- Здесь будут модификации -->
+                </div>
+                <button type="button" id="add-product-modification-button">Добавить модификацию</button>
+                <br><br>
+                Пометить на удаление: <input type="checkbox" name="product-to-remove" id="product-to-remove">
+            </fieldset>
+        </div>
+        <br>
+        <div class="modal-control-buttons">
+            <span class="span-button" id="product-editor-cancel-button">Отмена</span>
+            <span class="span-button" id="product-editor-save-button">Сохранить</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const apiURL = "/api/products/";
+    const apiImportProductsURL = "/api/import_products/"; // URL для импорта товаров
+    const operationsLogURL = "/api/operations/"; // URL для логов операций
+    const token = localStorage.getItem('user_token'); // Получаем токен из localStorage
+
+    let selectedProduct = null;
+    let productCategoriesMap = {}; // Для хранения загруженных категорий в виде {id: name}
+
+    // Функция для получения CSRF-токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Настройка AJAX-запросов для передачи CSRF-токена
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        }
+    });
+
+    // Функция для загрузки категорий и заполнения select
+    function loadProductCategories() {
+        $.ajax({
+            url: "/api/categories/",
+            method: "GET",
+            dataType: "json",
+            success: function(data) {
+                productCategoriesMap = {};
+                const $select = $("#product-category");
+                $select.empty().append('<option value="">-- Выберите категорию --</option>');
+
+                if (data.results && Array.isArray(data.results)) {
+                    data.results.forEach(category => {
+                        productCategoriesMap[category.id] = category.name;
+                        $select.append(`<option value="${category.id}">${category.name}</option>`);
+                    });
+                }
+            },
+            error: function(jqXHR) {
+                alert("Не удалось загрузить список категорий");
+            }
+        });
+    }
+
+    function checkProductFormData() {
+        if ($("#product-title").val().trim().length === 0) {
+            throw new Error("Наименование не может быть пустым!");
+        }
+        if (!/^\d+(\.\d+)?$/.test($("#product-price").val())) {
+            throw new Error("Поле цены заполнено некорректно!");
+        }
+    }
+
+    function formatDates(product) {
+        product.dt_created = new Date(product.dt_created).toLocaleString();
+        product.dt_updated = new Date(product.dt_updated).toLocaleString();
+    }
+
+function showProducts(url) {
+    $.ajax(url, {
+        method: "GET",
+        dataType: "json",
+        success: function(data) {
+            let products = data.results || [];
+            let $contentTable = $("#content-table");
+            $("tr:not(:first-child)", $contentTable).remove();
+
+            products.forEach(product => {
+                formatDates(product);
+                let modificationCount = product.modifications ? product.modifications.length : 0; // Получаем количество модификаций
+                let $row = $("<tr>");
+                $row.append($("<td>").text(product.category ? productCategoriesMap[product.category] : "-"));
+                $row.append($("<td>").text(product.id));
+                $row.append($("<td>").text(product.title));
+                $row.append($("<td>").text(modificationCount)); // Отображаем количество модификаций
+                $row.append($("<td>").text(product.price));
+                $row.append($("<td>").text(product.dt_created));
+                $row.append($("<td>").text(product.dt_updated));
+                $row.append($("<td>").text(product.to_remove ? "X" : "-"));
+                $row.data("product", product);
+                $contentTable.append($row);
+            });
+
+            $contentTable.off("click", "tr:not(:first-child)").on("click", "tr:not(:first-child)", productEdit);
+            createPaginationButtons(data.previous, data.next, showProducts);
+        },
+        error: function(jqXHR) {
+            alert("Ошибка при загрузке товаров");
+        }
+    });
+}
+
+
+    function productEdit() {
+    selectedProduct = $(this).data("product");
+    if (!selectedProduct) return;
+
+    showModal($("#product-editor"));
+    $("#product-number").text(selectedProduct.id);
+    $("#product-dt-created").text(selectedProduct.dt_created);
+    $("#product-dt-updated").text(selectedProduct.dt_updated);
+    $("#product-title").val(selectedProduct.title);
+    $("#product-price").val(selectedProduct.price);
+    $("#product-category").val(selectedProduct.category || ""); // Установка выбранной категории по ID
+    $("#product-to-remove").prop("checked", selectedProduct.to_remove);
+
+    // Загрузка модификаций
+    $("#product-modifications-container").empty(); // Очищаем контейнер модификаций
+    selectedProduct.modifications.forEach(modification => {
+        $("#product-modifications-container").append(`
+            <div class="modification">
+                Модификация:<br>
+                <input type="text" name="product-description" class="product-description" value="${modification.description}" required><br><br>
+            </div>
+        `);
+    });
+
+    // Обработчик для добавления новой модификации
+    $("#add-modification-button").off().click(() => {
+        $("#product-modifications-container").append(`
+            <div class="modification">
+                Модификация:<br>
+                <input type="text" name="product-description" class="product-description" required><br><br>
+            </div>
+        `);
+    });
+}
+function productEdit() {
+    selectedProduct = $(this).data("product");
+    if (!selectedProduct) return;
+
+    showModal($("#product-editor"));
+    $("#product-number").text(selectedProduct.id);
+    $("#product-dt-created").text(selectedProduct.dt_created);
+    $("#product-dt-updated").text(selectedProduct.dt_updated);
+    $("#product-title").val(selectedProduct.title);
+    $("#product-price").val(selectedProduct.price);
+    $("#product-category").val(selectedProduct.category || ""); // Установка выбранной категории по ID
+    $("#product-to-remove").prop("checked", selectedProduct.to_remove);
+
+    // Загрузка модификаций
+    $("#product-modifications-container").empty(); // Очищаем контейнер модификаций
+    selectedProduct.modifications.forEach(modification => {
+        $("#product-modifications-container").append(`
+            <div class="modification">
+                Модификация:<br>
+                <input type="text" name="product-description" class="product-description" value="${modification.description}" required><br><br>
+            </div>
+        `);
+    });
+
+    // Обработчик для добавления новой модификации
+    $("#add-modification-button").off().click(() => {
+        $("#product-modifications-container").append(`
+            <div class="modification">
+                Модификация:<br>
+                <input type="text" name="product-description" class="product-description" required><br><br>
+            </div>
+        `);
+    });
+}
+
+
+
+    function showModal($modal) {
+        $modal.show();
+    }
+
+    function closeModal($modal) {
+        $modal.hide();
+    }
+
+// Обработчик добавления модификации для нового товара
+$("#add-new-product-modification-button").click(function() {
+    $("#new-product-modifications-container").append(`
+        <div class="modification">
+            Модификация:<br>
+            <input type="text" name="product-description" class="product-description" value="" required><br><br>
+        </div>
+    `);
+});
+
+// Обработчик добавления модификации для редактируемого товара
+$("#add-product-modification-button").click(() => {
+    $("#product-modifications-container").append(`
+        <div class="modification">
+            Модификация:<br>
+            <input type="text" name="product-description" class="product-description" required><br><br>
+        </div>
+    `);
+});
+
+
+// Обработчик кнопки "Создать" для создания нового товара
+$("#create-button").click(function() {
+    // Сбрасываем выбранные поля
+    $("#new-product-number").text("-");
+    $("#new-product-title").val("");
+    $("#new-product-price").val("0");
+    $("#new-product-category").val("");
+    $("#new-product-to-remove").prop("checked", false);
+    $("#product-modifications-container").empty(); // Очищаем контейнер модификаций
+
+    // Загружаем категории для нового товара
+    loadNewProductCategories(); // Загружаем категории перед открытием окна
+
+    // Открываем модальное окно
+    showModal($("#product-creator"));
+});
+
+// Обработчик кнопки "Создать" для создания нового товара
+$("#product-creator-save-button").click(function() {
+    const newProductData = {
+        category: $("#new-product-category").val(),
+        title: $("#new-product-title").val(),
+        price: parseFloat($("#new-product-price").val()),
+        to_remove: $("#new-product-to-remove").is(":checked"),
+        modifications: [] // Массив для модификаций
+    };
+
+    // Сбор модификаций
+    $("#new-product-modifications-container .product-description").each(function() {
+        const mod = $(this).val().trim();
+        if (mod) newProductData.modifications.push({ description: mod });
+    });
+
+    console.log(newProductData);
+
+    // Отправка данных на сервер
+    $.ajax({
+        url: apiURL,
+        method: "POST",
+        dataType: "json",
+        contentType: "application/json",
+        headers: {
+            'Authorization': 'Token ' + token,
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        data: JSON.stringify(newProductData),
+        success: function(data) {
+            closeModal($("#product-creator"));
+            showProducts(apiURL);
+        },
+        error: function(jqXHR) {
+            alert("Ошибка при создании продукта: " + (jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Неизвестная ошибка"));
+        }
+    });
+});
+
+
+
+// Обработчик закрытия нового модального окна
+$("#product-creator-close-button, #product-creator-cancel-button").click(function() {
+    closeModal($("#product-creator"));
+});
+
+// Функция для загрузки категорий и заполнения select
+function loadNewProductCategories() {
+    $.ajax({
+        url: "/api/categories/",
+        method: "GET",
+        dataType: "json",
+        success: function(data) {
+            const $select = $("#new-product-category");
+            $select.empty().append('<option value="">-- Выберите категорию --</option>'); // Очистка селекта перед загрузкой
+
+            if (data.results && Array.isArray(data.results)) {
+                data.results.forEach(category => {
+                    $select.append(`<option value="${category.id}">${category.name}</option>`);
+                });
+            }
+        },
+        error: function(jqXHR) {
+            alert("Не удалось загрузить список категорий");
+        }
+    });
+}
+
+let lastSearchText = ""; // Объявление глобальной переменной
+
+// Обновляем lastSearchText при вводе
+$("#search-input").on("input", function() {
+    lastSearchText = $(this).val();
+});
+
+$("#product-editor-save-button").off().click(() => {
+    // Проверяем корректность внесения данных в форму
+    try {
+        if ($("#product-title").val().trim().length === 0) {
+            throw new Error("Наименование не может быть пустым!");
+        }
+        if (!/^\d+(\.\d+)?$/.test($("#product-price").val())) {
+            throw new Error("Поле цены заполнено некорректно!");
+        }
+    } catch (error) {
+        alert(error.message);
+        return;
+    }
+
+    const updatedProductData = {
+        category: $("#product-category").val(), // ID категории
+        title: $("#product-title").val(),
+        price: parseFloat($("#product-price").val()),
+        to_remove: $("#product-to-remove").is(":checked"),
+        modifications: [] // Массив для модификаций
+    };
+
+    // Сбор модификаций
+    $("#product-modifications-container .product-description").each(function() {
+        const mod = $(this).val().trim();
+        if (mod) updatedProductData.modifications.push({ description: mod });
+    });
+
+    // Отправка данных на сервер
+    $.ajax({
+        url: `${apiURL}${selectedProduct.id}/`, // Используйте правильный URL для обновления
+        method: "PATCH", // Используем PATCH для обновления
+        dataType: "json",
+        contentType: "application/json",
+        headers: {
+            'Authorization': 'Token ' + token,
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        data: JSON.stringify(updatedProductData), // Преобразуем объект в JSON
+        success: function(data) {
+            // Обработка успешного ответа
+            console.log(data);
+            // Обновление интерфейса
+            closeModal($("#product-editor")); // Закрываем модальное окно
+        },
+        error: function(jqXHR) {
+            console.log(getCookie('csrftoken'));
+            alert("Ошибка при обновлении продукта: " + (jqXHR.responseJSON ? jqXHR.responseJSON.detail : "Неизвестная ошибка"));
+        }
+    });
+});
+
+
+
+<!--    // Обработчик кнопки "Создать"-->
+<!--    $("#create-button").click(function() {-->
+<!--        selectedProduct = null; // Сбрасываем выбранный продукт-->
+<!--        showModal($("#product-editor"));-->
+<!--        $("#product-number").text("-");-->
+<!--        $("#product-dt-created").text("-");-->
+<!--        $("#product-dt-updated").text("-");-->
+<!--        $("#product-title").val("");-->
+<!--        $("#product-description").val("");-->
+<!--        $("#product-price").val("0");-->
+<!--        $("#product-category").val(""); // Установка категории по умолчанию на пустое значение-->
+<!--        $("#product-to-remove").prop("checked", false);-->
+<!--    });-->
+
+    // Обработчик кнопки "Импортировать" для открытия модального окна
+$("#import-button").click(function() {
+    showModal($("#import-modal"));
+});
+
+// Обработчик подтверждения импорта в модальном окне
+    $("#import-confirm-button").click(() => {
+            let file = $("#file").prop("files")[0];
+
+            if (!file) {
+                alert("Пожалуйста, выберите файл для импорта.");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("uploaded_file", file);
+
+            $.ajax(apiImportProductsURL, {
+                "method": "POST",
+                "data": formData,
+                "processData": false,
+                "contentType": false,
+                "success": function () {
+                    alert("Файл успешно импортирован");
+                },
+                "error": function (jqXHR) {
+                    alert("Ошибка при импорте файла: " + jqXHR.responseText);
+                }
+            });
+        });
+
+    // Закрытие модальных окон
+    $("#import-modal-close-button").click(function() {
+        closeModal($("#import-modal"));
+    });
+
+    $("#product-editor-close-button, #product-editor-cancel-button").click(function() {
+        closeModal($("#product-editor"));
+    });
+
+    // Функция для создания кнопок пагинации
+    function createPaginationButtons(prevPage, nextPage, callback) {
+        $("#prev-page-button").off().click(() => {
+            if (prevPage) callback(prevPage);
+        }).toggle(!!prevPage);
+
+        $("#next-page-button").off().click(() => {
+            if (nextPage) callback(nextPage);
+        }).toggle(!!nextPage);
+    }
+
+    // Функция для поиска
+    function getSearchFunction(callback, getParams, baseUrl) {
+    return function() {
+        lastSearchText = $("#search-field").val().trim(); // Сохраняем текст поиска
+        let url = baseUrl;
+
+        // Добавляем параметры поиска
+        if (lastSearchText) {
+            url += `?search=${encodeURIComponent(lastSearchText)}`;
+        }
+
+        callback(url);
+    };
+}
+
+    // Инициализация
+    $(document).ready(function() {
+        loadProductCategories();
+        showProducts(apiURL); // Загружаем товары
+
+        // Обработчики для поиска
+$("#search-button").click(getSearchFunction(showProducts, getDefaultSearchParams, apiURL));
+$("#clear-search-field-button").click(() => {
+    $("#search-field").val("");
+    lastSearchText = ""; // Сбрасываем текст поиска
+    showProducts(apiURL); // Показываем все продукты
+});
+    });
+</script>
+{% endblock %}

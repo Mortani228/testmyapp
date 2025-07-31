@@ -12,8 +12,8 @@ from django.db.models.query_utils import DeferredAttribute
 from django.db.models.deletion import ProtectedError
 from django.db.models import Sum, F, Q
 from utils import get_username_for_operation, apply_expense_document, apply_receipt_document, unapply_receipt_document, unapply_expense_document
-from main.models import Product, Contractor, StorageItem, Document, DocumentItem, Operation, Category, ProductModification
-from .serializers import ProductSerializer, ContractorSerializer, StorageItemSerializer, OperationSerializer, DocumentSerializer, DocumentItemSerializer, CategorySerializer, ProductModificationSerializer
+from main.models import Product, Contractor, StorageItem, Document, DocumentItem, Operation, Category
+from .serializers import ProductSerializer, ContractorSerializer, StorageItemSerializer, OperationSerializer, DocumentSerializer, DocumentItemSerializer, CategorySerializer
 from .pagination import CustomPagination
 from .authentication import TokenAuthentication
 from utils import get_tmp_file_path
@@ -75,41 +75,18 @@ class RegisteredViewSet(viewsets.ModelViewSet):
 
         return result
 
-
-class ProductModificationViewSet(viewsets.ModelViewSet):
-    serializer_class = ProductModificationSerializer
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        product_id = self.request.query_params.get('product')
-        if product_id:
-            return ProductModification.objects.filter(product_id=product_id)
-        return ProductModification.objects.all()
-
-    def perform_create(self, serializer):
-        product_id = self.request.query_params.get('product')
-        if product_id:
-            product = get_object_or_404(Product, id=product_id)
-            serializer.save(product=product)
-        else:
-            raise ValidationError("Product ID is required to create a modification.")
-
-
 class ProductViewSet(RegisteredViewSet):
+    queryset = Product.objects.all()
     serializer_class = ProductSerializer
     pagination_class = CustomPagination
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter]
     search_fields = ['id', 'title']
-
     def perform_create(self, serializer):
         serializer.save()
-
     def perform_update(self, serializer):
         serializer.save()
-
     model = Product
     model_verbose_name = 'Товар'
 

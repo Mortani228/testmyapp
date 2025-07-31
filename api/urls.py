@@ -3,7 +3,7 @@ from django.urls import path
 from rest_framework import routers
 from .views import ProductViewSet, ContractorViewSet, OperationViesSet, StorageItemViewSet, DocumentViewSet, \
     DocumentItemViewSet, contractor_categories, apply_document, unapply_document, remove_marked_objects, \
-    import_products, consolidated_report, motion_report, CategoryViewSet, ProductModificationViewSet
+    import_products, consolidated_report, motion_report, CategoryViewSet
 
 app_name = 'api'
 
@@ -15,8 +15,6 @@ urlpatterns = [
     path('import_products/', import_products, name='import_products'),
     path('consolidated_report/', consolidated_report, name='consolidated_report'),
     path('motion_report/', motion_report, name='motion_report'),
-    path('products/<int:product_id>/modifications/', ProductModificationViewSet.as_view({'get': 'list', 'post': 'create'}), name='product_modifications'),
-    path('products/<int:product_id>/modifications/<int:modification_id>/', ProductModificationViewSet.as_view({'patch': 'partial_update', 'delete': 'destroy'}), name='product_modification_detail'),
 ]
 
 router = routers.SimpleRouter()

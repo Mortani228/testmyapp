@@ -70,37 +70,41 @@
 {% endblock %}
 
 {% block modals %}
-<div class="modal" id="product-creator" style="display: none">
+   <div class="modal" id="product-creator" style="display: none">
     <div class="modal-content">
         <div class="modal-control-buttons">
             <span class="span-button" id="product-creator-close-button">X</span>
         </div>
-        <div>
-            Номер: <span id="new-product-number"></span><br><br>
-            <fieldset>
-                Категория:<br>
-                <select name="new-product-category" id="new-product-category" required>
-                    <!-- Опции будут загружены динамически -->
-                </select><br><br>
-                Цена: <br><input type="text" name="new-product-price" id="new-product-price" value="0" required><br><br>
-                Наименование:<br><input type="text" name="new-product-title" id="new-product-title" value=""
-                                        required><br><br>
-                <div id="new-product-modifications-container">
-                    <!-- Здесь будут модификации -->
-                </div>
-                <button type="button" id="add-new-product-modification-button">Добавить модификацию</button><br><br>
-                Пометить на удаление: <input type="checkbox" name="new-product-to-remove" id="new-product-to-remove">
-            </fieldset>
-        </div>
-        <br>
-        <div class="modal-control-buttons">
-            <span class="span-button" id="product-creator-cancel-button">Отмена</span>
-            <span class="span-button" id="product-creator-save-button">Создать</span>
-        </div>
+        <form id="product-creator-form">
+            {% csrf_token %}
+            <div>
+                Номер: <span id="new-product-number"></span><br><br>
+                <fieldset>
+                    Категория:<br>
+                    <select name="new-product-category" id="new-product-category" required>
+                        <!-- Опции будут загружены динамически -->
+                    </select><br><br>
+                    Цена: <br><input type="text" name="new-product-price" id="new-product-price" value="0" required><br><br>
+                    Наименование:<br><input type="text" name="new-product-title" id="new-product-title" value="" required><br><br>
+                    <div id="new-product-modifications-container">
+                        <!-- Здесь будут модификации -->
+                    </div>
+                    <button type="button" id="add-new-product-modification-button">Добавить модификацию</button><br><br>
+                    Пометить на удаление: <input type="checkbox" name="new-product-to-remove" id="new-product-to-remove">
+                </fieldset>
+            </div>
+            <br>
+            <div class="modal-control-buttons">
+                <span class="span-button" id="product-creator-cancel-button">Отмена</span>
+                <span class="span-button" id="product-creator-save-button">Создать</span>
+            </div>
+        </form>
     </div>
 </div>
 
+
 <div class="modal" id="product-editor" style="display: none">
+    {% csrf_token %}
     <div class="modal-content">
         <div class="modal-control-buttons">
             <span class="span-button" id="product-editor-close-button">X</span>
@@ -144,20 +148,20 @@
     let productCategoriesMap = {}; // Для хранения загруженных категорий в виде {id: name}
 
     // Функция для получения CSRF-токена
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
+       function getCookie(name) {
+       let cookieValue = null;
+       if (document.cookie && document.cookie !== '') {
+           const cookies = document.cookie.split(';');
+           for (let i = 0; i < cookies.length; i++) {
+               const cookie = cookies[i].trim();
+               if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                   cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                   break;
+               }
+           }
+       }
+       return cookieValue;
+   }
 
     // Настройка AJAX-запросов для передачи CSRF-токена
     $.ajaxSetup({
@@ -300,12 +304,12 @@ function productEdit() {
     });
 
     // Обработчик для добавления новой модификации
-    $("#add-modification-button").off().click(() => {
-        $("#product-modifications-container").append(`
-            <div class="modification">
-                Модификация:<br>
-                <input type="text" name="product-description" class="product-description" required><br><br>
-            </div>
+    $("#add-product-modification-button").off().click(() => {
+           $("#product-modifications-container").append(`
+               <div class="modification">
+                   Модификация:<br>
+                   <input type="text" name="product-description" class="product-description" required><br><br>
+               </div>
         `);
     });
 }
@@ -325,9 +329,14 @@ $("#add-new-product-modification-button").click(function() {
     $("#new-product-modifications-container").append(`
         <div class="modification">
             Модификация:<br>
-            <input type="text" name="product-description" class="product-description" value="" required><br><br>
+            <input type="text" name="product-description" class="product-description" required><br>
+            <button type="button" class="remove-modification-button">Удалить</button><br><br>
         </div>
     `);
+});
+
+$(document).on('click', '.remove-modification-button', function() {
+    $(this).closest('.modification').remove();
 });
 
 // Обработчик добавления модификации для редактируемого товара
@@ -359,7 +368,7 @@ $("#create-button").click(function() {
 });
 
 // Обработчик кнопки "Создать" для создания нового товара
-$("#product-creator-save-button").click(function() {
+   $("#product-creator-save-button").click(function() {
     const newProductData = {
         category: $("#new-product-category").val(),
         title: $("#new-product-title").val(),
@@ -396,6 +405,9 @@ $("#product-creator-save-button").click(function() {
         }
     });
 });
+
+
+
 
 
 

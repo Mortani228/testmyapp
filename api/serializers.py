@@ -1,12 +1,5 @@
 from rest_framework import serializers
-from main.models import Product, Contractor, StorageItem, Document, DocumentItem, Operation, Category, \
-    ProductModification
-
-
-class ProductModificationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ProductModification
-        fields = ['description']
+from main.models import Product, Contractor, StorageItem, Document, DocumentItem, Operation, Category
 
 
 class ContractorSerializer(serializers.ModelSerializer):
@@ -66,38 +59,19 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = '__all__'  # Включаем все поля (id, name)
 
-class ProductSerializer(serializers.ModelSerializer):
-    modifications = ProductModificationSerializer(many=True)
 
+class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['category', 'id', 'title', 'price', 'to_remove', 'modifications', 'dt_created', 'dt_updated']
+        fields = ['id', 'title', 'price', 'dt_created', 'dt_updated', 'to_remove', 'category', 'modifications']  # Добавьте modifications
 
     def create(self, validated_data):
-        modifications_data = validated_data.pop('modifications', [])
-        product = Product.objects.create(**validated_data)
-        for modification_data in modifications_data:
-            ProductModification.objects.create(product=product, **modification_data)
-        return product
+        return Product.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
-        modifications_data = validated_data.pop('modifications', [])
         instance.title = validated_data.get('title', instance.title)
         instance.price = validated_data.get('price', instance.price)
         instance.category = validated_data.get('category', instance.category)
-        instance.to_remove = validated_data.get('to_remove', instance.to_remove)
+        instance.modifications = validated_data.get('modifications', instance.modifications)  # Обновите modifications
         instance.save()
-
-        # Обновление модификаций
-        for modification_data in modifications_data:
-            modification_id = modification_data.get('id', None)
-            if modification_id:  # Если ID модификации указан, обновляем ее
-                modification = ProductModification.objects.get(id=modification_id, product=instance)
-                modification.description = modification_data.get('description', modification.description)
-                modification.save()
-            else:  # Если ID не указан, создаем новую модификацию
-                ProductModification.objects.create(product=instance, **modification_data)
-
         return instance
-
-

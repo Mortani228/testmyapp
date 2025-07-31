@@ -2,6 +2,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 
 
 class Token(models.Model):
@@ -40,19 +41,19 @@ class Category(models.Model):
 class Product(BaseDataModel):
     title = models.CharField(max_length=200, verbose_name='Наименование')
     price = models.IntegerField(verbose_name='Цена')
-    # Добавляем поле category, которое ссылается на вашу модель Category
     category = models.ForeignKey(
         Category,
-        on_delete=models.SET_NULL,  # Или models.PROTECT, в зависимости от вашей логики
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='products',  # Имя для обратной связи
-        verbose_name="Категория товара"  # Читаемое имя поля
+        related_name='products',
+        verbose_name="Категория товара"
     )
+    modifications = JSONField(default=list, verbose_name='Модификации')  # Поле для модификаций
 
     @property
     def modification_count(self):
-        return self.modifications.count()
+        return len(self.modifications)  # Обновите метод для подсчета модификаций
 
     def __str__(self):
         return '{number:<10}|{title}'.format(number=self.pk, title=self.title)
@@ -162,14 +163,3 @@ class Warehouse(models.Model):
         verbose_name = 'Склад'
         verbose_name_plural = 'Склад'
 
-
-class ProductModification(models.Model):
-    product = models.ForeignKey(Product, related_name='modifications', on_delete=models.CASCADE)
-    description = models.CharField(max_length=255)
-
-    def __str__(self):
-        return f'{self.description}'
-
-    class Meta:
-        verbose_name = 'Модификация товара'
-        verbose_name_plural = 'Модификации товаров'

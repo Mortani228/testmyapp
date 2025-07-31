@@ -1,9 +1,5 @@
 from django.contrib import admin
-from .models import Product, Contractor, Operation, StorageItem, Document, DocumentItem, Token, Warehouse, Category, ProductModification
-
-class ProductModificationInline(admin.TabularInline):
-    model = ProductModification
-    extra = 1
+from .models import Product, Contractor, Operation, StorageItem, Document, DocumentItem, Token, Warehouse, Category
 
 @admin.register(Token)
 class TokenAdmin(admin.ModelAdmin):
@@ -15,7 +11,6 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = ['category', 'id', 'title', 'modification_count', 'price', 'dt_created', 'dt_updated', 'to_remove']
     list_display_links = ['title', 'price', 'modification_count']
     search_fields = ['title', 'category__name']  # Поиск по наименованию, описанию и категории
-    inlines = [ProductModificationInline]
 
 @admin.register(Contractor)
 class ContractorAdmin(admin.ModelAdmin):
